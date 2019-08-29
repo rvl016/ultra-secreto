@@ -1,0 +1,124 @@
+VERSÃO - 3.5.3 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Q2 - P: Modelo conceitual
+   Nodes: 
+      (*) 163414 nós. Todos possuem name e node_id.
+          Address - 7 props
+             (*) 58551 nós com todas as props. 677 não contém *:
+             node_id 
+             name
+             contries *
+             contry_codes *
+             address
+             valid_until 
+             sourceID 
+          Entity - 17 props
+             (*) 24957 nós:
+             node_id
+             status
+             name
+             note
+             countries
+             country_codes 
+             address
+             type
+             company_type
+             service_provider
+             ibcRUC
+             jurisdiction
+             jurisdiction_description
+             incorporation_date
+             closed_date
+             valid_until 
+             sourceID 
+          Intermediary - 6 props
+             (*) 2031 nós.
+             node_id 
+             name 
+             countries 
+             country_codes 
+             valid_until 
+             sourceID 
+          Officer - 7 props
+             (*) 77012 nós.
+             node_id 
+             name 
+             note 
+             countries 
+             country_codes 
+             valid_until 
+             sourceID 
+          Other
+             (*) 186 nós.
+             node_id 
+             status 
+             name 
+             note 
+             countries 
+             country_codes 
+             jurisdiction 
+             jurisdiction_description 
+             valid_until 
+             sourceID 
+   Rels types:
+          OFFICER_OF - 221112 rels  
+              (Entity) ->	(Entity) - 3
+              (Other) -> (Entity) - 3724
+              (Officer) -> (Entity) - 217382
+              (Officer) -> (Officer) - 2
+              (Officer) -> (Intermediary) - 1
+          REGISTERED_ADDRESS - 128311 rels
+              (Entity) -> (Address) - 38890
+              (Other) -> (Address) - 226
+              (Officer) ->	(Address) - 89195
+          CONNECTED_TO - 10552 rels
+              (Other) -> (Entity) - 224
+              (Intermediaty) -> (Entity) - 9229
+              (Officer) -> (Entity) - 1099
+          INTERMEDIARY_OF - 4063 rels
+              (Other) -> (Entity)
+          SAME_NAME_AS - 416 rels
+              (*) Tirando um caso, em que o nome é completamente distinto,
+              há 4 casos em que a propriedade name dos nós diferem de um . ou *
+              (Entity) -> (Officer) - 3
+              (Other) -> (Entity) - 4
+              (Intermediary) -> (Entity) - 204
+              (Officer) -> (Officer) - 20
+              (Officer) -> (Entity) - 185
+          SAME_ID_AS - 2 rels
+              (*) Verifiquei essas ocorrências, são officers com nomes muito parecidos
+                  , porém com node_id distintos! Não é bem o mesmo ID!!! 
+                  Indica que são a mesma pessoa?!
+              (Officer) -> (Officer) - 2
+
+########################################################################
+Trechos de código
+   (*) Achando o número de propiedades por nó: 
+       match (n:Address) return keys(n), size(keys(n)) order by size(keys(n)) desc
+          size() vs count()
+             count() aqui conta o total as ocorrências no grupo
+
+   (*) Achando propriedades distintas para um tipo de nó:
+       match (n:Entity) with keys(n) as x unwind x as k return distinct k
+
+   (*) Achando tipos de nós que se conectam com determinada relação e contagem:
+       match (x)-[:CONNECTED_TO]->(y) return distinct labels(x),labels(y), count(*)
+
+   (*) match (x)-[r]->(y) return distinct type(r), labels(x),labels(y), count(*) order by type(r)
+
+   (*) Achando número de relações de um tipo:
+       MATCH p=()-[r:CONNECTED_TO]->() RETURN count(r)
+
+   (*) Achando inconsistências:
+       match (a)-[:SAME_NAME_AS]->(b) where a.name <> b.name return a.name,b.name
+
+   (*) Mostrando que todos os nós possuem name e node_id
+       match (n) WHERE NOT EXISTS(n.name) OR NOT EXISTS (n.node_id) return n
+########################################################################
+Obeservações gerais:
+   (*) todo node tem uma propriedade labels(), isso tem que ser considerado ao buscar as
+propriedades.
+   (*) O correspondente de labels(node) para relação é type(rel)
+   (*) [blah in blahblah] == extract(blah in blahblabh)
+   (*) UNWIND - list -> rows (decompõe listas em elementos distintos)
+   (*) Em Cypher, '!=' <- '<>'
+ 
