@@ -1,4 +1,5 @@
-VERSÃO - 3.5.3 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+VERSÃO - 3.5.3 do database !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Q2 - P: Modelo conceitual
    Nodes: 
       (*) 163414 nós. Todos possuem name e node_id.
@@ -8,7 +9,7 @@ Q2 - P: Modelo conceitual
              name
              contries *
              contry_codes *
-             address
+             address (*) Inutil, visto que name sempre contém address!!!
              valid_until 
              sourceID 
           Entity - 17 props
@@ -59,6 +60,8 @@ Q2 - P: Modelo conceitual
              jurisdiction_description 
              valid_until 
              sourceID 
+   (*) Todo node tem um node_id único, portanto já são indexados sem 
+       ambiguidade.
    Rels types:
           OFFICER_OF - 221112 rels  
               (Entity) ->	(Entity) - 3
@@ -77,48 +80,72 @@ Q2 - P: Modelo conceitual
           INTERMEDIARY_OF - 4063 rels
               (Other) -> (Entity)
           SAME_NAME_AS - 416 rels
-              (*) Tirando um caso, em que o nome é completamente distinto,
-              há 4 casos em que a propriedade name dos nós diferem de um . ou *
+              (*) Tirando um caso, em que os nomes são completamente 
+                  distintos, há 4 casos em que a propriedade name dos 
+                  nós diferem de um . ou * 
               (Entity) -> (Officer) - 3
               (Other) -> (Entity) - 4
               (Intermediary) -> (Entity) - 204
               (Officer) -> (Officer) - 20
               (Officer) -> (Entity) - 185
           SAME_ID_AS - 2 rels
-              (*) Verifiquei essas ocorrências, são officers com nomes muito parecidos
-                  , porém com node_id distintos! Não é bem o mesmo ID!!! 
-                  Indica que são a mesma pessoa?!
+              (*) Verifiquei essas ocorrências, são officers com nomes 
+                  muito parecidos, porém com node_id distintos! Não é 
+                  bem o mesmo ID!!! Indica que são a mesma pessoa?!
               (Officer) -> (Officer) - 2
 
 ########################################################################
+Obeservações do database:
+   Propriedades:
+      Geral:
+      Address:
+         name sempre contém a propriedade address e, com excessão de 
+         dois casos, name começa com o contido em address.
+########################################################################
 Trechos de código
    (*) Achando o número de propiedades por nó: 
-       match (n:Address) return keys(n), size(keys(n)) order by size(keys(n)) desc
-          size() vs count()
-             count() aqui conta o total as ocorrências no grupo
+       match (n:Address) return keys(n), size(keys(n)) order by 
+           size(keys(n)) desc
+           (*) size() vs count()
+               count() aqui conta o total as ocorrências no grupo
 
    (*) Achando propriedades distintas para um tipo de nó:
-       match (n:Entity) with keys(n) as x unwind x as k return distinct k
+       match (n:Entity) with keys(n) as x unwind x as k 
+           return distinct k
 
-   (*) Achando tipos de nós que se conectam com determinada relação e contagem:
-       match (x)-[:CONNECTED_TO]->(y) return distinct labels(x),labels(y), count(*)
+   (*) Achando tipos de nós que se conectam com determinada relação e 
+       contagem:
+       match (x)-[:CONNECTED_TO]->(y) return distinct labels(x),
+           labels(y), count(*)
 
-   (*) match (x)-[r]->(y) return distinct type(r), labels(x),labels(y), count(*) order by type(r)
+   (*) match (x)-[r]->(y) return distinct type(r), labels(x),labels(y), 
+           count(*) order by type(r)
 
    (*) Achando número de relações de um tipo:
        MATCH p=()-[r:CONNECTED_TO]->() RETURN count(r)
 
    (*) Achando inconsistências:
-       match (a)-[:SAME_NAME_AS]->(b) where a.name <> b.name return a.name,b.name
+       match (a)-[:SAME_NAME_AS]->(b) where a.name <> b.name return 
+           a.name,b.name
 
-   (*) Mostrando que todos os nós possuem name e node_id
-       match (n) WHERE NOT EXISTS(n.name) OR NOT EXISTS (n.node_id) return n
+   (*) Mostrando que todos os nós possuem name e node_id:
+       match (n) WHERE NOT EXISTS(n.name) OR NOT EXISTS (n.node_id) 
+           return n
+
+   (*) Mostrando que não há nodes com mesmo node_id:
+       MATCH (a), (b) where a.node_id = b.node_id and a <> b return a,b
+
+   (*) Mostrando que name quase sempre começa com o conteúdo de Address
+       em nodes do tipo Address:
+       MATCH (a:Address) where not a.name starts with a.address return 
+           a.name, a.address
 ########################################################################
-Obeservações gerais:
-   (*) todo node tem uma propriedade labels(), isso tem que ser considerado ao buscar as
-propriedades.
+Obeservações sobre o Cypher:
+   (*) todo node tem uma propriedade labels(), isso tem que ser
+       considerado ao buscar as propriedades.
    (*) O correspondente de labels(node) para relação é type(rel)
    (*) [blah in blahblah] == extract(blah in blahblabh)
    (*) UNWIND - list -> rows (decompõe listas em elementos distintos)
    (*) Em Cypher, '!=' <- '<>'
+   (*) Em Cypher, '==' <- '='
  
